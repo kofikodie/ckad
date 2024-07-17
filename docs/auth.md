@@ -139,13 +139,48 @@ Once created, you may authenticate into the kube-api server using the users cred
 
 `curl -v -k https://localhost:6443/api/v1/pods -u "user1:password123"`
 
+### Configuring Admission Webhooks
+
+Admission webhooks in Kubernetes allow you to intercept and validate requests to the API server before they are persisted. This enables you to enforce custom policies, validate configurations, and perform additional checks on resources before they are created or modified.
+
+Admission webhooks consist of two types: validating admission webhooks and mutating admission webhooks.
+
+- Validating admission webhooks validate and potentially reject requests based on predefined rules or policies. They can be used to enforce security policies, resource limits, naming conventions, and other constraints.
+
+- Mutating admission webhooks modify requests before they are persisted to the cluster. They can be used to automatically inject sidecar containers, set default values, or perform other transformations on resources.
+
+To configure admission webhooks in Kubernetes, you need to create a webhook server that implements the necessary logic for validating or mutating requests. The webhook server should expose an HTTPS endpoint that the API server can communicate with.
+
+Once the webhook server is running, you can register it with the API server by creating a `ValidatingWebhookConfiguration` or `MutatingWebhookConfiguration` object. These objects specify the webhook server's endpoint, the resources it should intercept, and the rules it should enforce.
+
+Example of a ValidatingWebhookConfiguration object:
+
+```yaml
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: example-validating-webhook
+webhooks:
+  - name: example.validating.webhook.com
+    clientConfig:
+      service:
+        name: example-validating-webhook
+        namespace: default
+    rules:
+      - operations: ["CREATE", "UPDATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+    admissionReviewVersions: ["v1"]
+```
+
+In this example, we define a `ValidatingWebhookConfiguration` object that specifies a validating webhook for pods. The webhook server is expected to be running as a service named `example-validating-webhook` in the `default` namespace. The webhook will intercept `CREATE` and `UPDATE` operations on pods in the `v1` API version.
 
 ## Managing Roles and Role Bindings
 
 Roles and RoleBindings are essential components of Kubernetes RBAC (Role-Based Access Control) that allow you to define and manage permissions within a cluster. Roles define a set of permissions that can be applied to resources, while RoleBindings associate roles with users, groups, or service accounts.
 
 ### Creating a Role
-
 
 To create a Role in Kubernetes, you need to define the permissions that the Role will grant. Here's an example of a Role manifest that allows read access to Pods in the `default` namespace:
 
@@ -156,11 +191,10 @@ metadata:
   namespace: default
   name: pod-reader
 rules:
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
 ```
-
 
 In this example manifest we define a Role named `pod-reader` that grants read access to Pods in the `default` namespace. The `rules` section specifies the permissions, including the API groups, resources, and verbs that are allowed.
 
@@ -175,9 +209,9 @@ metadata:
   name: read-pods
   namespace: default
 subjects:
-- kind: User
-  name: jane
-  apiGroup: rbac.authorization.k8s.io
+  - kind: User
+    name: jane
+    apiGroup: rbac.authorization.k8s.io
 roleRef:
   kind: Role
   name: pod-reader
@@ -191,4 +225,3 @@ In this example manifest, we create a RoleBinding named `read-pods` that binds t
 In addition to Roles and RoleBindings, Kubernetes also supports ClusterRoles and ClusterRoleBindings, which apply permissions across the entire cluster rather than a specific namespace. ClusterRoles and ClusterRoleBindings are useful for defining global permissions that apply to all namespaces.
 
 To create a ClusterRole or ClusterRoleBinding, you can use the same manifests as shown above, but without specifying a `namespace` field. This indicates that the permissions apply cluster-wide rather than to a specific namespace.
-
