@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: time-check
+  name: time-check
+spec:
+  volumes:
+    - name: log-volume
+      emptyDir: {} 
+  containers:
+  - image: busybox
+    name: time-check
+    command: ["/bin/sh","-c","while true; do date; sleep $TIME_FREQ; done > /opt/time/time-check.log"]
+    resources: {}
+    volumeMounts:
+      - name: log-volume
+        mountPath: /opt/time
+    env:
+    - name: TIME_FREQ
+      valueFrom:
+        configMapKeyRef:
+          name: time-config
+          key: TIME_FREQ
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+status: {}

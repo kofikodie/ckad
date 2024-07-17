@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: logger
+  name: logger
+spec:
+  dnsPolicy: ClusterFirst
+  volumes:
+    - name: log
+      persistentVolumeClaim: 
+        claimName: log-claim
+  containers:
+  - image: nginx:alpine
+    name: logger
+    volumeMounts:
+      - name: log
+        mountPath: /var/www/nginx
+    resources: 
+      requests: 
+        memory: "64Mi"
+        cpu: "250m"
+      limits:
+        memory: "128Mi"
+        cpu: "500m"
+
